@@ -56,7 +56,7 @@ class nav_cloning_node:
         self.learning = True
         self.select_dl = False
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
-        self.path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/result_'+str(self.mode)+'/'
+        self.path = roslib.packages.get_pkg_dir('nav_cloning_analysis') + '/data/result_'+str(self.mode)+'/'
         self.save_path = roslib.packages.get_pkg_dir('nav_cloning_analysis') + '/data/model_'+str(self.mode)+'/'
         self.load_path = roslib.packages.get_pkg_dir('nav_cloning_analysis') +'/data/analysis/model_gpu.pt'
         self.previous_reset_time = 0
