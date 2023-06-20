@@ -3,7 +3,7 @@ from __future__ import print_function
 
 from numpy import dtype
 import roslib
-roslib.load_manifest('nav_cloning_analyze')
+roslib.load_manifest('nav_cloning_analysis')
 import rospy
 import cv2
 from sensor_msgs.msg import Image

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(nav_cloning_analyze)
+project(nav_cloning_analysis)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
