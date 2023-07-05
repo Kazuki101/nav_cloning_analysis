@@ -149,7 +149,6 @@ class deep_learning:
         self.transform=transforms.Compose([transforms.ToTensor()])
         self.first_flag =True
         torch.backends.cudnn.benchmark = True
-        #self.writer = SummaryWriter(log_dir="/home/haru/nav_ws/src/nav_cloning/runs",comment="log_1")
 
     def make_dataset(self,img,target_angle):
         if self.first_flag:
@@ -303,3 +302,4 @@ class deep_learning:
 
 if __name__ == '__main__':
         dl = deep_learning()
+

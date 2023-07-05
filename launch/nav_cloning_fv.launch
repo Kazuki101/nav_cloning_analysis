@@ -23,11 +23,11 @@
         name="timed_roslaunch" output="screen" />
 
   <node pkg="timed_roslaunch" type="timed_roslaunch.sh"
-        args="8 nav_cloning_analysis turtlebot3_navigation.launch model:=waffle map_file:=$(find nav_cloning)/maps/willowgarage.yaml waypoints_file:=$(find nav_cloning)/maps/willow_loop.yaml"
+        args="8 nav_cloning_analysis turtlebot3_navigation.launch model:=waffle map_file:=$(find nav_cloning_analysis)/maps/willowgarage.yaml waypoints_file:=$(find nav_cloning_analysis)/maps/willow_loop.yaml"
         name="timed_roslaunch2" >
   </node>
   <!-- <node pkg="timed_roslaunch" type="timed_roslaunch.sh" -->
-  <!--       args="8 nav_cloning_analysis turtlebot3_navigation.launch model:=waffle map_file:=$(find nav_cloning)/maps/willowgarage.yaml waypoints_file:=$(find nav_cloning)/maps/test_loop.yaml" -->
+  <!--       args="8 nav_cloning_analysis turtlebot3_navigation.launch model:=waffle map_file:=$(find nav_cloning_analysis/maps/willowgarage.yaml waypoints_file:=$(find nav_cloning_analysis)/maps/test_loop.yaml" -->
   <!--       name="timed_roslaunch2" > -->
   <!-- </node> -->
 

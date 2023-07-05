@@ -315,7 +315,7 @@ class nav_cloning_node:
             self.vel.angular.z = target_action
             self.nav_pub.publish(self.vel)
 
-        mr_image = self.dl.MoRAM(img)
+        # mr_image = self.dl.MoRAM(img)
         temp = copy.deepcopy(img)
         cv2.imshow("Resized Image", temp)
         temp = copy.deepcopy(img_left)
@@ -325,7 +325,7 @@ class nav_cloning_node:
         # temp = copy.deepcopy(mr_image)
         # temp = resize(temp, (480, 640))
         # cv2.imshow("MoRAM Image", temp)
-        # cv2.waitKey(1)
+        cv2.waitKey(1)
 
 if __name__ == '__main__':
     rg = nav_cloning_node()
