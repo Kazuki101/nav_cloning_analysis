@@ -154,12 +154,12 @@ class nav_cloning_node:
         #img_right = np.asanyarray([r,g,b])
         ros_time = str(rospy.Time.now())
 
-        if self.episode == 4000:
+        if self.episode == 8000:
             self.learning = False
             self.dl.save(self.save_path)
             # self.dl.load(self.load_path)
 
-        if self.episode == 6000:
+        if self.episode == 10000:
             os.system('killall roslaunch')
             sys.exit()
 
@@ -317,14 +317,16 @@ class nav_cloning_node:
 
         # mr_image = self.dl.MoRAM(img)
         temp = copy.deepcopy(img)
+        temp = resize(temp, (360, 480))
         cv2.imshow("Resized Image", temp)
         temp = copy.deepcopy(img_left)
         cv2.imshow("Resized Left Image", temp)
         temp = copy.deepcopy(img_right)
         cv2.imshow("Resized Right Image", temp)
-        # temp = copy.deepcopy(mr_image)
-        # temp = resize(temp, (480, 640))
-        # cv2.imshow("MoRAM Image", temp)
+        fv_img = self.dl.fv(img)
+        temp = copy.deepcopy(fv_img)
+        temp = resize(temp, (360, 480))
+        cv2.imshow("FV Image", temp)
         cv2.waitKey(1)
 
 if __name__ == '__main__':

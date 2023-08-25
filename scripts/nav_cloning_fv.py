@@ -21,6 +21,9 @@ from yaml import load
 # from PIL import Image
 import cv2
 import matplotlib.cm
+from torchvision import models
+from torchvision.models.feature_extraction import create_feature_extractor
+
 
 
 # HYPER PARAM
@@ -37,16 +40,10 @@ class Net(nn.Module):
         self.fc4 = nn.Linear(960, 512)
         self.fc5 = nn.Linear(512,n_out)
         self.relu = nn.ReLU(inplace=True)
+        self.flatten = nn.Flatten()
         self.deconv1 = nn.ConvTranspose2d(1, 1, 8, stride=4, bias=False)
         self.deconv2 = nn.ConvTranspose2d(1, 1, 3, stride=2, bias=False)
         self.deconv3 = nn.ConvTranspose2d(1, 1, 3, stride=1, bias=False)
-        # self.average1 = torch.zeros((1, 1, 11, 15))
-        # self.average2 = torch.zeros((1, 1, 5, 7))
-        # self.average3 = torch.zeros((1, 1, 3, 5))
-        self.ave0 = 0
-        self.ave1 = 0
-        self.ave2 = 0
-        self.ave3 = 0
         
     #<Weight set>
         torch.nn.init.kaiming_normal_(self.conv1.weight)
@@ -56,7 +53,6 @@ class Net(nn.Module):
         torch.nn.init.kaiming_normal_(self.fc5.weight)
         #self.maxpool = nn.MaxPool2d(2,2)
         #self.batch = nn.BatchNorm2d(0.2)
-        self.flatten = nn.Flatten()
         torch.nn.init.ones_(self.deconv1.weight)
         torch.nn.init.ones_(self.deconv2.weight)
         torch.nn.init.ones_(self.deconv3.weight)
@@ -82,57 +78,35 @@ class Net(nn.Module):
 
     #<forward layer>
     def forward(self,x):
-        x1 = self.conv1(x)
-        x2 = self.relu(x1)
-        in1 = x1.to('cpu').detach().numpy().copy()
-        for i in in1:
-            for j in i:
-                self.ave1 += j
-        self.ave1 /= 32 #self.ave1.shape=(11,15)
-        self.ave1_ten = torch.from_numpy(self.ave1)
-        self.ave1_ten = self.ave1_ten.cuda()
-        x3 = self.conv2(x2)
-        x4 = self.relu(x3)
-        in2 = x3.to('cpu').detach().numpy().copy()
-        for i in in2:
-            for j in i:
-                self.ave2 += j
-        self.ave2 /= 64
-        self.ave2_ten = torch.from_numpy(self.ave2)
-        self.ave2_ten = self.ave2_ten.cuda()
-        x5 = self.conv3(x4)
-        x6 = self.relu(x5)
-        in3 = x5.to('cpu').detach().numpy().copy()
-        for i in in3:
-            for j in i:
-                self.ave3 += j
-        self.ave3 /= 64
-        self.ave3_ten = torch.from_numpy(self.ave3)
-        self.ave3_ten = self.ave3_ten.cuda()
-        x7 = self.fc_layer(x6)
-        return x7
+        x1 = self.cnn_layer(x)
+        x2 = self.fc_layer(x1)
+        return x2
     
-    def feature2image(self):
-        ave1_reshape = torch.reshape(self.ave1_ten, (1, 1, 11, 15))
-        ave2_reshape = torch.reshape(self.ave2_ten, (1, 1, 5, 7))
-        ave3_reshape = torch.reshape(self.ave3_ten, (1, 1, 3, 5))
+    def feature2image(self, conv1, conv2, conv3):
+        ave1_reshape = torch.reshape(conv1, (1, 1, 11, 15))
+        ave2_reshape = torch.reshape(conv2, (1, 1, 5, 7))
+        ave3_reshape = torch.reshape(conv3, (1, 1, 3, 5))
         image = self.deconv3(ave3_reshape) * ave2_reshape
         image = self.deconv2(image) * ave1_reshape
         image = self.deconv1(image)
         image = torch.reshape(image, (48, 64))
         image = image.to('cpu').detach().numpy().copy()
-        min = np.min(image)
-        max = np.max(image)
-        image = (image - min) / (max - min)
+        # min = np.min(image)
+        # max = np.max(image)
+        # image = (image - min) / (max - min)
+        image = (image - image.min())/(image.max() - image.min())
         return image
         
 class deep_learning:
     def __init__(self, n_channel=3, n_action=1):
         #<tensor device choiece>
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        torch.manual_seed(0)
         self.net = Net(n_channel, n_action)
         self.net.to(self.device)
         print(self.device)
+        # names = torchvision.models.feature_extraction.get_graph_node_names(self.net)
+        # print(names)
         self.optimizer = optim.Adam(self.net.parameters(),eps=1e-2,weight_decay=5e-4)
         #self.optimizer.setup(self.net.parameters())
         self.totensor = transforms.ToTensor()
@@ -148,7 +122,8 @@ class deep_learning:
         self.criterion = nn.MSELoss()
         self.transform=transforms.Compose([transforms.ToTensor()])
         self.first_flag =True
-        torch.backends.cudnn.benchmark = True
+        torch.backends.cudnn.benchmark = False
+        self.extractor = create_feature_extractor(self.net, ["relu", "relu_1", "relu_2"])
 
     def make_dataset(self,img,target_angle):
         if self.first_flag:
@@ -167,7 +142,7 @@ class deep_learning:
 
     def trains(self):
         self.net.train()
-        train_dataset = DataLoader(self.dataset, batch_size=BATCH_SIZE, generator=torch.Generator('cpu'),shuffle=True)
+        train_dataset = DataLoader(self.dataset, batch_size=BATCH_SIZE, generator=torch.Generator('cpu').manual_seed(0),shuffle=True)
         
     #<only cpu>
         # train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE,shuffle=True)
@@ -223,83 +198,38 @@ class deep_learning:
     def load(self, load_path):
         #<model load>
         self.net.load_state_dict(torch.load(load_path))
-        
-    def toHeatmap(self, x):
-        x = (x*255).reshape(-1)
-        cm = plt.cm.get_cmap('jet')
-        x = np.array([cm(float(np.round(xi)))[:3] for xi in x])
-        return x.reshape(48,64,3)
     
     def fv(self, img):
         self.net.eval()
         x_ten = torch.tensor(img,dtype=torch.float32, device=self.device).unsqueeze(0)
         x_ten = x_ten.permute(0,3,1,2)
         self.net(x_ten)
-        fv_img = self.net.feature2image()
+        features = self.extractor(x_ten)
+        # conv1 = features["conv1"]
+        conv1 = features["relu"]
+        feature1 = conv1.to('cpu').detach().numpy().copy()
+        ave1 = np.average(feature1[0],axis=0)
+        ave1_ten = torch.from_numpy(ave1)
+        ave1_ten = ave1_ten.cuda()
+        # conv2 = features["conv2"]
+        conv2 = features["relu_1"]
+        feature2 = conv2.to('cpu').detach().numpy().copy()
+        ave2 = np.average(feature2[0],axis=0)
+        ave2_ten = torch.from_numpy(ave2)
+        ave2_ten = ave2_ten.cuda()
+        # conv3 = features["conv3"]
+        conv3 = features["relu_2"]
+        feature3 = conv3.to('cpu').detach().numpy().copy()
+        ave3 = np.average(feature3[0],axis=0)
+        ave3_ten = torch.from_numpy(ave3)
+        ave3_ten = ave3_ten.cuda()
+        fv_img = self.net.feature2image(ave1_ten, ave2_ten, ave3_ten)
+        fv_img = np.uint8(fv_img * 255)
+        fv_img = np.uint8(cv2.applyColorMap(fv_img, cv2.COLORMAP_JET))
+        fv_img = fv_img / np.max(fv_img)
+        # feature_rgb = np.dstack((fv_img, fv_img, fv_img))
+        # multi_img = np.multiply(feature_rgb, img)
         return fv_img
-    
-    def MoRAM(self, img):
-        self.net.eval()
-        self.optimizer.zero_grad()
-        x_test_ten = torch.tensor(img,dtype=torch.float32, device=self.device).unsqueeze(0)
-        x_test_ten = x_test_ten.permute(0,3,1,2)
-        features = self.net.cnn_layer.eval()
-        action = self.net.fc_layer.eval()
-        feature = features(x_test_ten)
-        feature = feature.clone().detach().requires_grad_(True)
-        y_pred = action(feature)
-        y_pred.backward()
-        feature_vec = feature.grad.view(64, 3*5) #feature_vec.size([64, 15])
-        alpha = torch.mean(feature_vec, axis=1) #alpha.size() = (64) #GAP
-        alpha = torch.abs(alpha)
-        feature = feature.squeeze(0) #feature.size([64, 3, 5])
-        L = torch.sum(alpha.view(-1, 1, 1)*feature, 0)
-        # print(L.size())
-        L = L.to('cpu').detach().numpy().copy()
-        L_min = np.min(L)
-        L_max = np.max(L)
-        L = (L - L_min)/(L_max - L_min) #L.shape=(3, 5)
-        L = cv2.resize(L, (64, 48))
-        L = np.uint8(L * 255)
-        # L = L.transpose(1, 0)
-        # img2 = self.toHeatmap(L)
-        img2 = np.uint8(cv2.applyColorMap(L, cv2.COLORMAP_JET))
-        # print(img2.shape)
-        img1 = img
-        grad_cam_image = np.multiply(np.uint8(img2), np.float32(img1))
-        grad_cam_image = grad_cam_image / np.max(grad_cam_image)
-        # alpha = 0.5
-        # grad_cam_image = img1*alpha + img2*(1-alpha)
-        # plt.imshow(grad_cam_image)
-        return grad_cam_image
-    
-    def conv1_visualizing(self, img):
-        self.net.eval()
-        self.optimizer.zero_grad()
-        x_test_ten = torch.tensor(img,dtype=torch.float32, device=self.device).unsqueeze(0)
-        x_test_ten = x_test_ten.permute(0,3,1,2)
-        conv1 = self.net.conv1(x_test_ten)
-        return conv1
-    
-    def conv2_visualizing(self, img):
-        self.net.eval()
-        self.optimizer.zero_grad()
-        relu1 = self.net.relu(img)
-        conv2 = self.net.conv2(relu1)
-        return conv2
-    
-    def conv3_visualizing(self, img):
-        self.net.eval()
-        self.optimizer.zero_grad()
-        relu2 = self.net.relu(img)
-        conv3 = self.net.conv3(relu2)
-        return conv3
-    
-    def feature_to_img(self, feature):
-        feature = feature.to('cpu').detach().numpy().copy()
-        feature = np.squeeze(feature)
-        return feature
 
 if __name__ == '__main__':
         dl = deep_learning()
-

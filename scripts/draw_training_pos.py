@@ -14,7 +14,7 @@ from PIL import Image
 def draw_training_pos():
     rospy.init_node('draw_training_pos_node', anonymous=True)
     path = roslib.packages.get_pkg_dir('nav_cloning_analysis') + '/data/analysis/'
-    image = Image.open(roslib.packages.get_pkg_dir('nav_cloning_analysis')+'/maps/map.png').convert("L")
+    image = Image.open(roslib.packages.get_pkg_dir('nav_cloning_analysis')+'/maps/cit_3f_map.pgm').convert("L")
     arr = np.asarray(image)
     fig = pyplot.figure()
     ax = fig.add_subplot(111)

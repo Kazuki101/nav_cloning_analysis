@@ -1,0 +1,101 @@
+# waypoints:
+#     - point:
+#         x: -10.0319
+#         y: -2.88294
+#         z: -0.000249862
+#     - point:
+#         x: -1.56834
+#         y: -3.90616
+#         z: -0.000247954
+#     - point:
+#         x: -0.291774
+#         y: 28.3794
+#         z: -0.000249862
+#     - point:
+#         x: -9.82456
+#         y: 28.2859
+#         z: -0.000248908
+# finish_pose:
+#     header:
+#         seq: 0
+#         stamp: 0.000000000
+#         frame_id: 
+#     pose:
+#         position:
+#             x: -9.82347
+#             y: 28.2851
+#             z: -0.000251769
+#         orientation:
+#             x: 6.49059e-05
+#             y: -6.42026e-05
+#             z: 0.688617
+#             w: -0.725152
+
+waypoints:
+    - point:
+        x: -10.0319
+        y: -2.88294
+        z: -0.000249862
+        function: run
+    - point:
+        x: -1.56834
+        y: -3.90616
+        z: -0.000247954
+        function: run
+    - point:
+        x: -0.291774
+        y: 28.3794
+        z: -0.000249862
+        function: run
+    - point:
+        x: -9.82456
+        y: 28.2859
+        z: -0.000248908
+        function: run
+
+# waypoints:
+#     - point:
+#         x: -9.92249
+#         y: 24.9733
+#         z: -0.000250815
+#         function: run
+#     - point:
+#         x: -10.0534
+#         y: -2.59909
+#         z: -0.000249862
+#         function: run
+#     - point:
+#         x: -8.60419
+#         y: -4.14099
+#         z: -0.000244139
+#         function: run
+#     - point:
+#         x: -1.65003
+#         y: -3.90616
+#         z: -0.000247954
+#         function: run
+#     - point:
+#         x: -0.309371
+#         y: -1.99443
+#         z: -0.000251769
+#         function: run
+#     - point:
+#         x: -0.291774
+#         y: 28.3794
+#         z: -0.000249862
+#         function: run
+#     - point:
+#         x: -2.15845
+#         y: 29.2258
+#         z: -0.000249862
+#         function: run
+#     - point:
+#         x: -8.46705
+#         y: 29.2642
+#         z: -0.000248908
+#         function: run
+#     - point:
+#         x: -9.82347
+#         y: 28.2851
+#         z: -0.000251769
+#         function: run

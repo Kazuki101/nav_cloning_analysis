@@ -20,6 +20,8 @@ from yaml import load
 # from PIL import Image
 import cv2
 import matplotlib.cm
+from torchvision import models
+from torchvision.models.feature_extraction import create_feature_extractor
 
 # HYPER PARAM
 BATCH_SIZE = 8
@@ -39,6 +41,10 @@ class Net(nn.Module):
         self.sig = nn.Sigmoid()
         self.liner1 = nn.Linear(64, 8, bias=False)
         self.liner2 = nn.Linear(8, 64, bias=False)
+        self.flatten = nn.Flatten()
+        self.deconv1 = nn.ConvTranspose2d(1, 1, 8, stride=4, bias=False)
+        self.deconv2 = nn.ConvTranspose2d(1, 1, 3, stride=2, bias=False)
+        self.deconv3 = nn.ConvTranspose2d(1, 1, 3, stride=1, bias=False)
         
         
     #<Weight set>
@@ -47,10 +53,12 @@ class Net(nn.Module):
         torch.nn.init.kaiming_normal_(self.conv3.weight)
         torch.nn.init.kaiming_normal_(self.fc4.weight)
         torch.nn.init.kaiming_normal_(self.fc5.weight)
-        
         #self.maxpool = nn.MaxPool2d(2,2)
         #self.batch = nn.BatchNorm2d(0.2)
-        self.flatten = nn.Flatten()
+        torch.nn.init.ones_(self.deconv1.weight)
+        torch.nn.init.ones_(self.deconv2.weight)
+        torch.nn.init.ones_(self.deconv3.weight)
+        
     #<CNN layer>   
         self.cnn_layer = nn.Sequential(
             self.conv1,
@@ -87,6 +95,26 @@ class Net(nn.Module):
         x4 = x1*x3.expand_as(x1)
         x5 = self.fc_layer(x4)
         return x5
+    
+    def feature2image(self, conv1, conv2, conv3, mul):
+        ave1_reshape = torch.reshape(conv1, (1, 1, 11, 15))
+        ave2_reshape = torch.reshape(conv2, (1, 1, 5, 7))
+        ave3_reshape = torch.reshape(conv3, (1, 1, 3, 5))
+        mul_reshape = torch.reshape(mul, (1, 1, 3, 5))
+        # image = self.deconv3(mul_reshape)
+        # image = self.deconv2(image) 
+        # image = self.deconv1(image)
+        image = mul_reshape * ave3_reshape
+        image = self.deconv3(image) * ave2_reshape
+        image = self.deconv2(image) * ave1_reshape
+        image = self.deconv1(image)
+        image = torch.reshape(image, (48, 64))
+        image = image.to('cpu').detach().numpy().copy()
+        # min = np.min(image)
+        # max = np.max(image)
+        # image = (image - min) / (max - min)
+        image = (image - image.min())/(image.max() - image.min())
+        return image
 
 class deep_learning:
     def __init__(self, n_channel=3, n_action=1):
@@ -111,7 +139,7 @@ class deep_learning:
         self.transform=transforms.Compose([transforms.ToTensor()])
         self.first_flag =True
         torch.backends.cudnn.benchmark = True
-        #self.writer = SummaryWriter(log_dir="/home/haru/nav_ws/src/nav_cloning/runs",comment="log_1")
+        self.extractor = create_feature_extractor(self.net, ["relu", "relu_1", "relu_2", "mul"])
 
     def make_dataset(self,img,target_angle):
         if self.first_flag:
@@ -186,6 +214,37 @@ class deep_learning:
     def load(self, load_path):
         #<model load>
         self.net.load_state_dict(torch.load(load_path))
+
+    def fv(self, img):
+        self.net.eval()
+        x_ten = torch.tensor(img,dtype=torch.float32, device=self.device).unsqueeze(0)
+        x_ten = x_ten.permute(0,3,1,2)
+        self.net(x_ten)
+        features = self.extractor(x_ten)
+        conv1 = features["relu"]
+        feature1 = conv1.to('cpu').detach().numpy().copy()
+        ave1 = np.average(feature1[0],axis=0)
+        ave1_ten = torch.from_numpy(ave1)
+        ave1_ten = ave1_ten.cuda()
+        conv2 = features["relu_1"]
+        feature2 = conv2.to('cpu').detach().numpy().copy()
+        ave2 = np.average(feature2[0],axis=0)
+        ave2_ten = torch.from_numpy(ave2)
+        ave2_ten = ave2_ten.cuda()
+        conv3 = features["relu_2"]
+        feature3 = conv3.to('cpu').detach().numpy().copy()
+        ave3 = np.average(feature3[0],axis=0)
+        ave3_ten = torch.from_numpy(ave3)
+        ave3_ten = ave3_ten.cuda()
+        mul = features["mul"]
+        feature = mul.to('cpu').detach().numpy().copy()
+        ave = np.average(feature[0],axis=0)
+        ave_ten = torch.from_numpy(ave)
+        ave_ten = ave_ten.cuda()
+        fv_img = self.net.feature2image(ave1_ten, ave2_ten, ave3_ten, ave_ten)
+        feature_rgb = np.dstack((fv_img, fv_img, fv_img))
+        multi_img = np.multiply(feature_rgb, img)
+        return multi_img
 
 if __name__ == '__main__':
         dl = deep_learning()

@@ -154,12 +154,12 @@ class nav_cloning_node:
         #img_right = np.asanyarray([r,g,b])
         ros_time = str(rospy.Time.now())
 
-        if self.episode == 4000:
+        if self.episode == 0:
             self.learning = False
-            self.dl.save(self.save_path)
-            # self.dl.load(self.load_path)
+            # self.dl.save(self.save_path)
+            self.dl.load(self.load_path)
 
-        if self.episode == 6000:
+        if self.episode == 2200:
             os.system('killall roslaunch')
             sys.exit()
 
@@ -263,7 +263,7 @@ class nav_cloning_node:
                 angle_error = abs(action - target_action)
 
             elif self.mode == "selected_training":
-                action = self.dl.act(img )
+                action = self.dl.act(img)
                 angle_error = abs(action - target_action)
                 loss = 0
                 if angle_error > 0.05:
@@ -281,13 +281,14 @@ class nav_cloning_node:
                 if self.select_dl and self.episode >= 0:
                     target_action = action
 
+
             # end mode
 
             self.episode += 1
             print(str(self.episode) + ", training, loss: " + str(loss) + ", angle_error: " + str(angle_error) + ", distance: " + str(distance))
             # print(str(self.episode)  + ", distance: " + str(distance))
-            # line = [str(self.episode), "training", str(loss), str(angle_error), str(distance), str(self.pos_x), str(self.pos_y), str(self.pos_the)  ]
-            line = [str(self.episode), "training", str(distance), str(self.pos_x), str(self.pos_y), str(self.pos_the)  ]
+            line = [str(self.episode), "training", str(loss), str(angle_error), str(distance), str(self.pos_x), str(self.pos_y), str(self.pos_the)  ]
+            # line = [str(self.episode), "training", str(distance), str(self.pos_x), str(self.pos_y), str(self.pos_the)  ]
             with open(self.path + self.start_time + '/' + 'training.csv', 'a') as f:
                 writer = csv.writer(f, lineterminator='\n')
                 writer.writerow(line)
@@ -302,8 +303,8 @@ class nav_cloning_node:
 
             self.episode += 1
             angle_error = abs(self.action - target_action)
-            # line = [str(self.episode), "test", "0", str(angle_error), str(distance), str(self.pos_x), str(self.pos_y), str(self.pos_the)  ]
-            line = [str(self.episode), "test", str(distance), str(self.pos_x), str(self.pos_y), str(self.pos_the)  ]
+            line = [str(self.episode), "test", "0", str(angle_error), str(distance), str(self.pos_x), str(self.pos_y), str(self.pos_the)  ]
+            # line = [str(self.episode), "test", str(distance), str(self.pos_x), str(self.pos_y), str(self.pos_the)  ]
             with open(self.path + self.start_time + '/' + 'training.csv', 'a') as f:
                 writer = csv.writer(f, lineterminator='\n')
                 writer.writerow(line)
@@ -313,6 +314,7 @@ class nav_cloning_node:
 
         # mr_image = self.dl.MoRAM(img)
         temp = copy.deepcopy(img)
+        temp = resize(temp, (360, 480))
         cv2.imshow("Resized Image", temp)
         temp = copy.deepcopy(img_left)
         cv2.imshow("Resized Left Image", temp)
@@ -323,7 +325,7 @@ class nav_cloning_node:
         # cv2.imshow("MoRAM Image", temp)
         fv_img = self.dl.fv(img)
         temp = copy.deepcopy(fv_img)
-        temp = resize(temp, (480, 640))
+        temp = resize(temp, (360, 480))
         cv2.imshow("FV Image", temp)
         cv2.waitKey(1)
 
