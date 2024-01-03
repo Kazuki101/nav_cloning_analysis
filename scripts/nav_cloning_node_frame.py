@@ -71,8 +71,10 @@ class nav_cloning_node:
         #     writer = csv.writer(f, lineterminator='\n')
         #     writer.writerow(['step', 'mode', 'loss', 'angle_error(rad)', 'distance(m)','x(m)','y(m)', 'the(rad)', 'direction'])
         self.tracker_sub = rospy.Subscriber("/tracker", Odometry, self.callback_tracker)
-
+    
     def callback(self, data):
+        # self.ver_frame = np.zeros((48,640,3),np.uint8)
+        # self.side_frame = np.zeros((576,64,3),np.uint8)
         try:
             self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
@@ -131,7 +133,7 @@ class nav_cloning_node:
         return model_res
 
     def loop(self):
-        if self.cv_image.size != 640 * 480 * 3:
+        if self.cv_image.size != 640 * 480 * 3:   #768*576*3
             return
         if self.cv_left_image.size != 640 * 480 * 3:
             return
@@ -141,15 +143,34 @@ class nav_cloning_node:
             self.is_started = True
         if self.is_started == False:
             return
+        
+        self.ver_frame = np.zeros((6,64,3),np.uint8)
+        self.side_frame = np.zeros((60,8,3),np.uint8)
+        
         img = resize(self.cv_image, (48, 64), mode='constant')
+        img = np.insert(img, 0, self.ver_frame, axis=0)
+        img = np.insert(img, img.shape[0], self.ver_frame, axis=0)
+        img = np.insert(img, [0], self.side_frame, axis=1)
+        img = np.insert(img, [img.shape[1]], self.side_frame, axis=1)
+        img = resize(img, (48, 64), mode='constant')
         # r, g, b = cv2.split(img)
         # img = np.asanyarray([r,g,b])
 
         img_left = resize(self.cv_left_image, (48, 64), mode='constant')
+        img_left = np.insert(img_left, 0, self.ver_frame, axis=0)
+        img_left = np.insert(img_left, img_left.shape[0], self.ver_frame, axis=0)
+        img_left = np.insert(img_left, [0], self.side_frame, axis=1)
+        img_left = np.insert(img_left, [img_left.shape[1]], self.side_frame, axis=1)
+        img_left = resize(img_left, (48, 64), mode='constant')
         #r, g, b = cv2.split(img_left)
         #img_left = np.asanyarray([r,g,b])
 
         img_right = resize(self.cv_right_image, (48, 64), mode='constant')
+        img_right = np.insert(img_right, 0, self.ver_frame, axis=0)
+        img_right = np.insert(img_right, img_right.shape[0], self.ver_frame, axis=0)
+        img_right = np.insert(img_right, [0], self.side_frame, axis=1)
+        img_right = np.insert(img_right, [img_right.shape[1]], self.side_frame, axis=1)
+        img_right = resize(img_right, (48, 64), mode='constant')
         #r, g, b = cv2.split(img_right)
         #img_right = np.asanyarray([r,g,b])
         ros_time = str(rospy.Time.now())
@@ -199,7 +220,7 @@ class nav_cloning_node:
                     action_left,  loss_left  = self.dl.act_and_trains(img_left , target_action - 0.2)
                     action_right, loss_right = self.dl.act_and_trains(img_right , target_action + 0.2)
                 angle_error = abs(action - target_action)
-                if distance > 0.1 or angle_error > 0.5:
+                if distance > 0.1:
                     self.select_dl = False
                 elif distance < 0.05:
                     self.select_dl = True

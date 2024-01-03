@@ -75,18 +75,30 @@ class nav_cloning_node:
     def callback(self, data):
         try:
             self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            # self.cv_image[0:95, 0:639] = 0 #upper mask
+            # self.cv_image[384:479, 0:639] = 0 #lower mask
+            self.cv_image[0:479, 0:127] = 0  #left mask
+            self.cv_image[0:479, 511:639] = 0 #right mask
         except CvBridgeError as e:
             print(e)
 
     def callback_left_camera(self, data):
         try:
             self.cv_left_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            # self.cv_left_image[0:95, 0:639] = 0 #upper mask
+            # self.cv_left_image[384:479, 0:639] = 0 #lower mask
+            self.cv_left_image[0:479, 0:127] = 0  #left mask
+            self.cv_left_image[0:479, 511:639] = 0 #right mask
         except CvBridgeError as e:
             print(e)
 
     def callback_right_camera(self, data):
         try:
             self.cv_right_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            # self.cv_right_image[0:95, 0:639] = 0 #upper mask
+            # self.cv_right_image[384:479, 0:639] = 0 #lower mask
+            self.cv_right_image[0:479, 0:127] = 0  #left mask
+            self.cv_right_image[0:479, 511:639] = 0 #right mask
         except CvBridgeError as e:
             print(e)
 
@@ -199,7 +211,7 @@ class nav_cloning_node:
                     action_left,  loss_left  = self.dl.act_and_trains(img_left , target_action - 0.2)
                     action_right, loss_right = self.dl.act_and_trains(img_right , target_action + 0.2)
                 angle_error = abs(action - target_action)
-                if distance > 0.1 or angle_error > 0.5:
+                if distance > 0.1:
                     self.select_dl = False
                 elif distance < 0.05:
                     self.select_dl = True

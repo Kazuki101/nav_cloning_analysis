@@ -8,7 +8,7 @@ import rospy
 import cv2
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
-from nav_cloning_fv import *
+from nav_cloning_pad import *
 from skimage.transform import resize
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseArray
@@ -154,12 +154,12 @@ class nav_cloning_node:
         #img_right = np.asanyarray([r,g,b])
         ros_time = str(rospy.Time.now())
 
-        if self.episode == 8000:
+        if self.episode == 0:
             self.learning = False
-            self.dl.save(self.save_path)
-            # self.dl.load(self.load_path)
+            # self.dl.save(self.save_path)
+            self.dl.load(self.load_path)
 
-        if self.episode == 10000:
+        if self.episode == 2200:
             os.system('killall roslaunch')
             sys.exit()
 
@@ -199,7 +199,7 @@ class nav_cloning_node:
                     action_left,  loss_left  = self.dl.act_and_trains(img_left , target_action - 0.2)
                     action_right, loss_right = self.dl.act_and_trains(img_right , target_action + 0.2)
                 angle_error = abs(action - target_action)
-                if distance > 0.1 or angle_error > 0.5:
+                if distance > 0.1:
                     self.select_dl = False
                 elif distance < 0.05:
                     self.select_dl = True
@@ -312,6 +312,7 @@ class nav_cloning_node:
             self.vel.angular.z = target_action
             self.nav_pub.publish(self.vel)
 
+        # mr_image = self.dl.MoRAM(img)
         temp = copy.deepcopy(img)
         temp = resize(temp, (360, 480))
         cv2.imshow("Resized Image", temp)
